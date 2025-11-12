@@ -19,7 +19,7 @@ const audio = new THREE.Audio(audioListener);
 
 // Cargar el archivo de música
 const audioLoader = new THREE.AudioLoader();
-audioLoader.load('sonidos/usica.mp3', function(audioBuffer) {
+audioLoader.load('sonidos/musica.mp3', function(audioBuffer) {
   audio.setBuffer(audioBuffer);
   audio.setLoop(true);           
   audio.setVolume(0.1);        
@@ -625,3 +625,4 @@ function animate() {
   const delta = clock.getDelta();
   renderer.render( scene, camera );
 }
+
