@@ -43,7 +43,7 @@ const gravity = 0.01;
 const character = new THREE.Object3D();
 scene.add(character);
 character.add(camera);
-camera.position.set(10, 5.6, 30); 
+character.position.set(20, 2, 35);
 
 window.addEventListener("gamepadconnected", (event) => {
   console.log("Controlador conectado:", event.gamepad.id);
@@ -70,11 +70,6 @@ function updateCharacterMovement() {
   if (moveForward) character.position.addScaledVector(direction, speed);
   if (moveBackward) character.position.addScaledVector(direction, -speed);
 
-
-
-    character.position.y = 1;
-    character.position.x = 20;
-    character.position.z = 35; 
   }
 
 ////////////////PUNTERO////////////////////////
