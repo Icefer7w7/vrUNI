@@ -44,7 +44,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 				document.body.appendChild( VRButton.createButton( renderer ) );
 //sonido//////////////////////
-const disparoSound = new Audio('sonidos/escopeta.mp3');
+const disparoSound = new Audio('sonidos/escopeta online.mp3');
 disparoSound.volume = 0.5; 
 
 const zombieSounds = [
@@ -60,7 +60,7 @@ setInterval(() => {
   const s = zombieSounds[Math.floor(Math.random() * zombieSounds.length)];
   s.currentTime = 0;
   s.play();
-}, 25000); 
+}, 30000); 
 
 //CAMARA y controles///////////////////
 
