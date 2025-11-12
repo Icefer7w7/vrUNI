@@ -7,6 +7,7 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 ////////////////////////ESCENA//////////////////
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+scene.fog = new THREE.FogExp2(0x2E2E2E, 0.06);  // Color y densidad
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
@@ -464,18 +465,21 @@ mixer1 = new THREE.AnimationMixer( object2 );
 const enemies = [];
 let lastZombieSpawnTime = 0;
 const zombieSpawnInterval = 4000; // 10 segundos en milisegundos
-const maxZombies = 10; // Máximo de zombies simultáneos
+const maxZombies = 12; // Máximo de zombies simultáneos
 
 function spawnZombie() {
   if (enemies.length >= maxZombies) return; // No crear si ya hay demasiados
 
   // Posición aleatoria alrededor del jugador
   const angle = Math.random() * Math.PI * 2;
-  const distance = 20 + Math.random() * 10; // Entre 20 y 30 unidades
+  const distance = 20 + Math.random() * 7; // Entre 20 y 30 unidades
   const x = character.position.x + Math.cos(angle) * distance;
   const z = character.position.z + Math.sin(angle) * distance;
 
-  loaderFbx.load("modelos/Zombie Walk.fbx", function(object2){
+  const zombieType = Math.random() > 0.5 ? "Walk" : "Scream";
+  const zombieModel = `modelos/Zombie ${zombieType}.fbx`;
+
+  loaderFbx.load(zombieModel, function(object2){
     object2.scale.set(0.004, 0.004, 0.004);
     object2.position.set(x, 0.3, z);
     object2.rotation.y = 0;
