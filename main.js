@@ -460,12 +460,12 @@ mixer1 = new THREE.AnimationMixer( object2 );
 const enemies = [];
 
 class Enemigo {
-  constructor(mesh, speed = 0.3) {
+  constructor(mesh, speed = 0.03) {
     this.enemyMesh = mesh;
     this.speed = speed;
     this.isChasing = false;
     this.atacando = false;
-    this.lives = 2;
+    this.lives = 10;
   }
 
   actualizarPosicion(personaje) {
