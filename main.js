@@ -46,6 +46,12 @@ character.add(camera);
 character.position.set(20, 1, 30); 
 camera.position.set(10, 5.6, 30); 
 
+const spotLight = new THREE.SpotLight(0xffffff, 1, 100, Math.PI / 6, 0.5, 2);
+spotLight.position.set(0, 0, 0);  // Relativa a la cámara
+spotLight.target.position.set(0, 0, -10);  // Apunta hacia adelante
+camera.add(spotLight);
+camera.add(spotLight.target);
+
 window.addEventListener("gamepadconnected", (event) => {
   console.log("Controlador conectado:", event.gamepad.id);
 });
@@ -78,7 +84,7 @@ function updateCharacterMovement() {
   if (moveBackward) character.position.addScaledVector(direction, -speed);
 
   // Solo mantener la altura (Y)
-  character.position.y = 1;
+  character.position.y = 0.6;
 }
 
 ////////////////PUNTERO////////////////////////
@@ -426,8 +432,8 @@ loaderFbx.load("modelos/CIELO.fbx", function(object1){
 })
 let mixer1;
 loaderFbx.load("modelos/Zombie Walk.fbx", function(object2){
-    object2.scale.set(0.005, 0.005, 0.005);
-    object2.position.set(-10, 0.4, 10);
+    object2.scale.set(0.004, 0.004, 0.004);
+    object2.position.set(-10, 0.3, 10);
     object2.rotation.y = 0;
 
     object2.traverse(function(child){
@@ -442,7 +448,8 @@ mixer1 = new THREE.AnimationMixer( object2 );
 						const action = mixer1.clipAction( object2.animations[ 0 ] );
 						action.play();
     // Instanciar Enemigo y guardarlo
-    const enemyInstance = new Enemigo(object2, 0.02);
+    const enemyInstance = new Enemigo(object2, 0.01);
+    enemyInstance.mixer = mixer1;
     enemies.push(enemyInstance);
 
     // Asociar referencia para raycast (cuando se dispare)
@@ -455,7 +462,48 @@ mixer1 = new THREE.AnimationMixer( object2 );
 
 ///ENEMIGOS///////////////////
 const enemies = [];
+let lastZombieSpawnTime = 0;
+const zombieSpawnInterval = 4000; // 10 segundos en milisegundos
+const maxZombies = 10; // Máximo de zombies simultáneos
 
+function spawnZombie() {
+  if (enemies.length >= maxZombies) return; // No crear si ya hay demasiados
+
+  // Posición aleatoria alrededor del jugador
+  const angle = Math.random() * Math.PI * 2;
+  const distance = 20 + Math.random() * 10; // Entre 20 y 30 unidades
+  const x = character.position.x + Math.cos(angle) * distance;
+  const z = character.position.z + Math.sin(angle) * distance;
+
+  loaderFbx.load("modelos/Zombie Walk.fbx", function(object2){
+    object2.scale.set(0.004, 0.004, 0.004);
+    object2.position.set(x, 0.3, z);
+    object2.rotation.y = 0;
+
+    object2.traverse(function(child){
+      if(child.isMesh){
+        child.material = zombie;
+      }
+    });
+
+    scene.add(object2);
+    const mixer = new THREE.AnimationMixer(object2);
+    const action = mixer.clipAction(object2.animations[0]);
+    action.play();
+    
+    // Instanciar Enemigo
+    const enemyInstance = new Enemigo(object2, 0.005);
+    enemyInstance.mixer = mixer; // Guardar mixer para actualizar en animate
+    enemies.push(enemyInstance);
+
+    // Asociar referencia para raycast
+    object2.traverse((child) => {
+      if (child.isMesh) {
+        child.userData.enemyInstance = enemyInstance;
+      }
+    });
+  });
+}
 class Enemigo {
   constructor(mesh, speed = 0.03) {
     this.enemyMesh = mesh;
@@ -517,7 +565,7 @@ class Enemigo {
 
 ///LUCES/////////////
 
-const Ambientlight = new THREE.AmbientLight( 0xD6D6D6 ); 
+const Ambientlight = new THREE.AmbientLight( 0x3B3B3B ); 
 scene.add( Ambientlight );
 
 const clock = new THREE.Clock();
@@ -531,10 +579,22 @@ function animate() {
   updateCharacterMovement();
   updatePointer();
 
+  const currentTime = Date.now();
+  
+  // Spawnear nuevo zombie cada 10 segundos
+  if (currentTime - lastZombieSpawnTime > zombieSpawnInterval) {
+    spawnZombie();
+    lastZombieSpawnTime = currentTime;
+  }
+
+  // Actualizar posiciones y animaciones de zombies
+  for (let i = 0; i < enemies.length; i++) {
+    enemies[i].actualizarPosicion(character);
+    if (enemies[i].mixer) {
+      enemies[i].mixer.update(0.016); // ~60 FPS
+    }
+  }
+
   const delta = clock.getDelta();
-  if (mixer1) mixer1.update(delta);
-
-  enemies.forEach(enemy => enemy.actualizarPosicion(character));
-
-  renderer.render(scene, camera);
+  renderer.render( scene, camera );
 }
