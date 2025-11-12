@@ -37,7 +37,7 @@ const controls = new OrbitControls( camera, renderer.domElement );
 let gamepad;
 let moveForward = false;
 let moveBackward = false;
-const speed = 0.1;
+const speed = 0.3;
 const gravity = 0.01;
 
 const character = new THREE.Object3D();
@@ -527,3 +527,4 @@ function animate() {
 
   renderer.render(scene, camera);
 }
+
