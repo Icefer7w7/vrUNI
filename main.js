@@ -7,7 +7,7 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 ////////////////////////ESCENA//////////////////
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-scene.fog = new THREE.FogExp2(0x2E2E2E, 0.06);  // Color y densidad
+scene.fog = new THREE.FogExp2(0x2E2E2E, 0.07);  // Color y densidad
 
 
 // Crear AudioListener y agregar a la cámara
@@ -46,6 +46,21 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 //sonido//////////////////////
 const disparoSound = new Audio('sonidos/escopeta.mp3');
 disparoSound.volume = 0.5; 
+
+const zombieSounds = [
+  new Audio('sonidos/zombieSS.mp3'),
+  
+];
+const zombieAttackSound = new Audio('sonidos/punch.mp3');
+zombieAttackSound.volume = 0.5;
+
+zombieSounds.forEach(s => s.volume = 0.05);
+
+setInterval(() => {
+  const s = zombieSounds[Math.floor(Math.random() * zombieSounds.length)];
+  s.currentTime = 0;
+  s.play();
+}, 25000); 
 
 //CAMARA y controles///////////////////
 
@@ -562,6 +577,7 @@ class Enemigo {
       const targetRotation = Math.atan2(direction.x, direction.z);
       this.enemyMesh.rotation.y = targetRotation;
     }
+    
 
     // Si está cerca, atacar
     if (distance <= 2) this.atacarJugador();
@@ -571,6 +587,8 @@ class Enemigo {
     if (!this.atacando) {
       this.atacando = true;
       console.log("¡El zombie atacó al jugador!");
+         zombieAttackSound.currentTime = 0;
+    zombieAttackSound.play();
       if (navigator.vibrate) navigator.vibrate(200);
       setTimeout(() => (this.atacando = false), 1500);
     }
@@ -625,4 +643,3 @@ function animate() {
   const delta = clock.getDelta();
   renderer.render( scene, camera );
 }
-
