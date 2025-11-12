@@ -37,7 +37,7 @@ const controls = new OrbitControls( camera, renderer.domElement );
 let gamepad;
 let moveForward = false;
 let moveBackward = false;
-const speed = 0.3;
+const speed = 0.05;
 const gravity = 0.01;
 
 const character = new THREE.Object3D();
@@ -52,6 +52,11 @@ window.addEventListener("gamepadconnected", (event) => {
 
 function updateCharacterMovement() {
   const gamepads = navigator.getGamepads();
+  
+  // Resetear movimiento cada frame
+  moveForward = false;
+  moveBackward = false;
+  
   if (gamepads[0]) {
     const gp = gamepads[0];
     const leftStickY = gp.axes[1];
@@ -66,6 +71,8 @@ function updateCharacterMovement() {
 
   const direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
+  direction.y = 0;  // No moverse verticalmente
+  direction.normalize();
 
   if (moveForward) character.position.addScaledVector(direction, speed);
   if (moveBackward) character.position.addScaledVector(direction, -speed);
