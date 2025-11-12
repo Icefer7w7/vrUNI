@@ -428,7 +428,7 @@ loaderFbx.load("modelos/CIELO.fbx", function(object1){
         scene.add(object1)
 })
 let mixer1;
-loaderFbx.load("modelos/Zombie Scream.fbx", function(object2){
+loaderFbx.load("modelos/Zombie Walk.fbx", function(object2){
     object2.scale.set(0.005, 0.005, 0.005);
     object2.position.set(-10, 0.4, 10);
     object2.rotation.y = 0;
