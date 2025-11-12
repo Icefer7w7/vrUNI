@@ -37,7 +37,7 @@ const controls = new OrbitControls( camera, renderer.domElement );
 let gamepad;
 let moveForward = false;
 let moveBackward = false;
-const speed = 0.3;
+const speed = 0.1;
 const gravity = 0.01;
 
 const character = new THREE.Object3D();
@@ -453,7 +453,7 @@ class Enemigo {
     this.speed = speed;
     this.isChasing = false;
     this.atacando = false;
-    this.lives = 10;
+    this.lives = 3;
   }
 
   actualizarPosicion(personaje) {
@@ -467,8 +467,8 @@ class Enemigo {
     direction.normalize();
 
     // Comportamiento de persecución
-    if (distance < 100) this.isChasing = true;
-    else if (distance > 150) this.isChasing = false;
+    if (distance < 10) this.isChasing = true;
+    else if (distance > 20) this.isChasing = false;
 
     // Movimiento hacia el jugador
     if (this.isChasing && distance > 2) {
@@ -486,7 +486,6 @@ class Enemigo {
   atacarJugador() {
     if (!this.atacando) {
       this.atacando = true;
-      console.log("¡El zombie atacó al jugador!");
       if (navigator.vibrate) navigator.vibrate(200);
       setTimeout(() => (this.atacando = false), 1500);
     }
@@ -494,7 +493,6 @@ class Enemigo {
 
   recibirDisparo() {
     this.lives--;
-    console.log("vida enemy", this.lives);
     if (this.lives <= 0) {
       scene.remove(this.enemyMesh);
       const idx = enemies.indexOf(this);
