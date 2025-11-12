@@ -9,6 +9,24 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 scene.fog = new THREE.FogExp2(0x2E2E2E, 0.06);  // Color y densidad
 
+
+// Crear AudioListener y agregar a la cámara
+const audioListener = new THREE.AudioListener();
+camera.add(audioListener);
+
+// Crear Audio
+const audio = new THREE.Audio(audioListener);
+
+// Cargar el archivo de música
+const audioLoader = new THREE.AudioLoader();
+audioLoader.load('sonidos/usica.mp3', function(audioBuffer) {
+  audio.setBuffer(audioBuffer);
+  audio.setLoop(true);           
+  audio.setVolume(0.1);        
+  audio.play();                 
+});
+
+
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.setAnimationLoop( animate );
@@ -25,6 +43,9 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 				
 
 				document.body.appendChild( VRButton.createButton( renderer ) );
+//sonido//////////////////////
+const disparoSound = new Audio('sonidos/escopeta.mp3');
+disparoSound.volume = 0.5; 
 
 //CAMARA y controles///////////////////
 
@@ -98,6 +119,8 @@ scene.add(enemy);
 
 
 function shootRay() {
+    disparoSound.currentTime = 0; // reinicia el sonido si se dispara rápido
+disparoSound.play();
   // Origen del disparo
   const origin = new THREE.Vector3();
   camera.getWorldPosition(origin);
@@ -481,7 +504,7 @@ function spawnZombie() {
 
   loaderFbx.load(zombieModel, function(object2){
     object2.scale.set(0.004, 0.004, 0.004);
-    object2.position.set(x, 0.3, z);
+    object2.position.set(x, 0.31, z);
     object2.rotation.y = 0;
 
     object2.traverse(function(child){
