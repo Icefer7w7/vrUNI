@@ -460,7 +460,7 @@ mixer1 = new THREE.AnimationMixer( object2 );
 const enemies = [];
 
 class Enemigo {
-  constructor(mesh, speed = 0.005) {
+  constructor(mesh, speed = 0.3) {
     this.enemyMesh = mesh;
     this.speed = speed;
     this.isChasing = false;
