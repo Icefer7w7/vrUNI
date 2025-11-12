@@ -72,38 +72,40 @@ function updateCharacterMovement() {
 
 
 
-    character.position.y = 5.6; // fuera de VR, mantener altura
+    character.position.y = 1;
+    character.position.x = 20;
+    character.position.z = 35; 
   }
 
 ////////////////PUNTERO////////////////////////
 const raycaster = new THREE.Raycaster();
-const enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
-const enemyMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
-enemy.position.set(0, 1, -5);
-scene.add(enemy);
-
 
 function shootRay() {
-  // Origen del disparo
   const origin = new THREE.Vector3();
   camera.getWorldPosition(origin);
 
-  // Dirección del disparo
   const direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
 
   raycaster.set(origin, direction);
-  const intersects = raycaster.intersectObject(enemy);
+
+  // Intersectar con TODOS los enemigos FBX
+  const enemyMeshes = enemies.map(e => e.enemyMesh);
+  const intersects = raycaster.intersectObjects(enemyMeshes, true);
 
   if (intersects.length > 0) {
-    console.log("¡Enemigo alcanzado!");
-    scene.remove(enemy);
+    const hit = intersects[0].object;
+    console.log("¡Impacto!", hit.name || hit.uuid);
 
-    // Vibración del control
-    if (navigator.vibrate) navigator.vibrate(200);
+    // Buscar el Enemigo correspondiente
+    const enemyHit = enemies.find(e => e.enemyMesh === hit.parent || e.enemyMesh === hit);
+
+    if (enemyHit) {
+      enemyHit.recibirDisparo();
+    }
+
+    if (navigator.vibrate) navigator.vibrate(100);
   }
-   
 }
 
 //////////////////////// GAMEPAD ////////////////////////
@@ -210,11 +212,6 @@ function updatePointer() {
 
 
 //ESCENA////////////////////////////
-/*const Piso = new THREE.BoxGeometry( 30, 0.2, 30 );
-const cube1 = new THREE.Mesh( Piso, piedra );
-scene.add( cube1 );
-cube1.position.set(0,0,0)
-cube1.rotation.set(0,1.57,0)*/
 
 
 /////FBX///////////////
@@ -429,7 +426,10 @@ loaderFbx.load("modelos/Zombie Walk.fbx", function(object2){
     });
 
     scene.add(object2);
+mixer1 = new THREE.AnimationMixer( object2 );
 
+						const action = mixer1.clipAction( object2.animations[ 0 ] );
+						action.play();
     // Instanciar Enemigo y guardarlo
     const enemyInstance = new Enemigo(object2, 0.02);
     enemies.push(enemyInstance);
@@ -509,10 +509,6 @@ class Enemigo {
 const Ambientlight = new THREE.AmbientLight( 0xD6D6D6 ); 
 scene.add( Ambientlight );
 
-
-
-camera.position.z = 8;
-camera.position.y = 5;
 const clock = new THREE.Clock();
 
 const lookAt = new THREE.Vector3().copy(playerPos);
