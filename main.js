@@ -73,8 +73,8 @@ function updateCharacterMovement() {
 
 
     character.position.y = 1;
-    character.position.x = 20;
-    character.position.z = 35; 
+    character.position.x = 10;
+    character.position.z = 20; // fuera de VR, mantener altura
   }
 
 ////////////////PUNTERO////////////////////////
@@ -87,31 +87,25 @@ scene.add(enemy);
 
 
 function shootRay() {
+  // Origen del disparo
   const origin = new THREE.Vector3();
   camera.getWorldPosition(origin);
 
+  // Dirección del disparo
   const direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
 
   raycaster.set(origin, direction);
-
-  // Intersectar con TODOS los enemigos FBX
-  const enemyMeshes = enemies.map(e => e.enemyMesh);
-  const intersects = raycaster.intersectObjects(enemyMeshes, true);
+  const intersects = raycaster.intersectObject(enemy);
 
   if (intersects.length > 0) {
-    const hit = intersects[0].object;
-    console.log("¡Impacto!", hit.name || hit.uuid);
+    console.log("¡Enemigo alcanzado!");
+    scene.remove(enemy);
 
-    // Buscar el Enemigo correspondiente
-    const enemyHit = enemies.find(e => e.enemyMesh === hit.parent || e.enemyMesh === hit);
-
-    if (enemyHit) {
-      enemyHit.recibirDisparo();
-    }
-
-    if (navigator.vibrate) navigator.vibrate(100);
+    // Vibración del control
+    if (navigator.vibrate) navigator.vibrate(200);
   }
+   
 }
 
 //////////////////////// GAMEPAD ////////////////////////
