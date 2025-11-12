@@ -43,6 +43,7 @@ const gravity = 0.01;
 const character = new THREE.Object3D();
 scene.add(character);
 character.add(camera);
+character.position.set(10, 1, 20); 
 camera.position.set(10, 5.6, 30); 
 
 window.addEventListener("gamepadconnected", (event) => {
@@ -58,10 +59,9 @@ function updateCharacterMovement() {
     moveForward = leftStickY < -0.1;
     moveBackward = leftStickY > 0.1;
 
-        if (gp.buttons[7].value > 0.5) {
+    if (gp.buttons[7].value > 0.5) {
       shootRay();
     }
-
   }
 
   const direction = new THREE.Vector3();
@@ -70,12 +70,9 @@ function updateCharacterMovement() {
   if (moveForward) character.position.addScaledVector(direction, speed);
   if (moveBackward) character.position.addScaledVector(direction, -speed);
 
-
-
-    character.position.y = 1;
-    character.position.x = 10;
-    character.position.z = 20; // fuera de VR, mantener altura
-  }
+  // Solo mantener la altura (Y)
+  character.position.y = 1;
+}
 
 ////////////////PUNTERO////////////////////////
 const raycaster = new THREE.Raycaster();
