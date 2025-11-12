@@ -43,55 +43,52 @@ const gravity = 0.01;
 const character = new THREE.Object3D();
 scene.add(character);
 character.add(camera);
+camera.position.set(10, 5.6, 30); 
+character.position.set(0, 0.5, 20);
 
-// Posición inicial del jugador (solo una vez)
-character.position.set(20, 1, 35);
-camera.position.set(0, 1.6, 0); // cámara a altura de ojos
-
-
-// =================== MOVIMIENTO ===================
-let moveLeft = false;
-let moveRight = false;
-
-let rotationY = 0; // rotación del jugador
-
+window.addEventListener("gamepadconnected", (event) => {
+  console.log("Controlador conectado:", event.gamepad.id);
+});
 
 function updateCharacterMovement() {
   const gamepads = navigator.getGamepads();
-  if (!gamepads[0]) return;
+  if (gamepads[0]) {
+    const gp = gamepads[0];
 
-  const gp = gamepads[0];
+    // Ejes del joystick izquierdo
+    const leftStickY = gp.axes[1];
+    const leftStickX = gp.axes[0];
 
-  // Joystick izquierdo → movimiento adelante/atrás e izquierda/derecha
-  const leftStickX = gp.axes[0];
-  const leftStickY = gp.axes[1];
+    // Movimiento básico
+    const moveForward = leftStickY < -0.1;
+    const moveBackward = leftStickY > 0.1;
+    const moveLeft = leftStickX < -0.1;
+    const moveRight = leftStickX > 0.1;
 
-  moveForward = leftStickY < -0.2;
-  moveBackward = leftStickY > 0.2;
-  moveLeft = leftStickX < -0.2;
-  moveRight = leftStickX > 0.2;
+    // Disparo (gatillo derecho)
+    if (gp.buttons[7] && gp.buttons[7].value > 0.5) {
+      shootRay();
+    }
 
-  // Joystick derecho → rotación horizontal
-  const rightStickX = gp.axes[2];
-  rotationY -= rightStickX * 0.05; // sensibilidad de giro
+    // Dirección basada en la cámara VR (a donde mira el jugador)
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    direction.y = 0; // evita subir o bajar
+    direction.normalize();
 
-  // Actualizar dirección del personaje
-  const forward = new THREE.Vector3(Math.sin(rotationY), 0, Math.cos(rotationY));
-  const right = new THREE.Vector3(Math.cos(rotationY), 0, -Math.sin(rotationY));
+    // Vector lateral (cruz con el eje Y)
+    const right = new THREE.Vector3();
+    right.crossVectors(new THREE.Vector3(0, 1, 0), direction).normalize();
 
-  // Movimiento en base a dirección actual
-  if (moveForward) character.position.addScaledVector(forward, speed);
-  if (moveBackward) character.position.addScaledVector(forward, -speed);
-  if (moveLeft) character.position.addScaledVector(right, -speed);
-  if (moveRight) character.position.addScaledVector(right, speed);
-
-  // Rotar personaje y cámara
-  character.rotation.y = rotationY;
-
-  // Botón gatillo (R2) dispara
-  if (gp.buttons[7].value > 0.5) {
-    shootRay();
+    // Movimiento
+    if (moveForward) character.position.addScaledVector(direction, speed);
+    if (moveBackward) character.position.addScaledVector(direction, -speed);
+    if (moveLeft) character.position.addScaledVector(right, speed);
+    if (moveRight) character.position.addScaledVector(right, -speed);
   }
+
+  // Mantener altura del personaje
+  character.position.y = 0.5;
 }
 
 ////////////////PUNTERO////////////////////////
@@ -431,7 +428,7 @@ loaderFbx.load("modelos/CIELO.fbx", function(object1){
         scene.add(object1)
 })
 let mixer1;
-loaderFbx.load("modelos/Zombie Walk.fbx", function(object2){
+loaderFbx.load("modelos/Zombie Scream.fbx", function(object2){
     object2.scale.set(0.005, 0.005, 0.005);
     object2.position.set(-10, 0.4, 10);
     object2.rotation.y = 0;
@@ -463,12 +460,12 @@ mixer1 = new THREE.AnimationMixer( object2 );
 const enemies = [];
 
 class Enemigo {
-  constructor(mesh, speed = 0.03) {
+  constructor(mesh, speed = 0.005) {
     this.enemyMesh = mesh;
     this.speed = speed;
     this.isChasing = false;
     this.atacando = false;
-    this.lives = 10;
+    this.lives = 2;
   }
 
   actualizarPosicion(personaje) {
