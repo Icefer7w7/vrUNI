@@ -87,32 +87,26 @@ scene.add(enemy);
 
 
 function shootRay() {
+  // Origen del disparo
   const origin = new THREE.Vector3();
   camera.getWorldPosition(origin);
 
+  // Dirección del disparo
   const direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
 
   raycaster.set(origin, direction);
+  const intersects = raycaster.intersectObject(enemy);
 
-  // 🔹 Revisar colisiones con todos los enemigos activos
-  for (let i = 0; i < enemies.length; i++) {
-    const enemyObj = enemies[i].enemyMesh;
-    if (!enemyObj) continue;
+  if (intersects.length > 0) {
+    console.log("¡Enemigo alcanzado!");
+    scene.remove(enemy);
 
-    const intersects = raycaster.intersectObject(enemyObj, true);
-
-    if (intersects.length > 0) {
-      console.log("¡Enemigo alcanzado!");
-      enemies[i].recibirDisparo();
-
-      // Vibración del control
-      if (navigator.vibrate) navigator.vibrate(200);
-      break; // salir después del primer impacto
-    }
+    // Vibración del control
+    if (navigator.vibrate) navigator.vibrate(200);
   }
+   
 }
-
 
 //////////////////////// GAMEPAD ////////////////////////
 window.addEventListener("gamepadconnected", (event) => {
@@ -457,7 +451,7 @@ class Enemigo {
     this.speed = speed;
     this.isChasing = false;
     this.atacando = false;
-    this.lives = 2;
+    this.lives = 10;
   }
 
   actualizarPosicion(personaje) {
