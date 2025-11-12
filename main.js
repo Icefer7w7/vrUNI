@@ -44,7 +44,6 @@ const character = new THREE.Object3D();
 scene.add(character);
 character.add(camera);
 camera.position.set(10, 5.6, 30); 
-character.position.set(0, 0.5, 20);
 
 window.addEventListener("gamepadconnected", (event) => {
   console.log("Controlador conectado:", event.gamepad.id);
@@ -54,45 +53,34 @@ function updateCharacterMovement() {
   const gamepads = navigator.getGamepads();
   if (gamepads[0]) {
     const gp = gamepads[0];
-
-    // Ejes del joystick izquierdo
     const leftStickY = gp.axes[1];
-    const leftStickX = gp.axes[0];
 
-    // Movimiento básico
-    const moveForward = leftStickY < -0.1;
-    const moveBackward = leftStickY > 0.1;
-    const moveLeft = leftStickX < -0.1;
-    const moveRight = leftStickX > 0.1;
+    moveForward = leftStickY < -0.1;
+    moveBackward = leftStickY > 0.1;
 
-    // Disparo (gatillo derecho)
-    if (gp.buttons[7] && gp.buttons[7].value > 0.5) {
+        if (gp.buttons[7].value > 0.5) {
       shootRay();
     }
 
-    // Dirección basada en la cámara VR (a donde mira el jugador)
-    const direction = new THREE.Vector3();
-    camera.getWorldDirection(direction);
-    direction.y = 0; // evita subir o bajar
-    direction.normalize();
-
-    // Vector lateral (cruz con el eje Y)
-    const right = new THREE.Vector3();
-    right.crossVectors(new THREE.Vector3(0, 1, 0), direction).normalize();
-
-    // Movimiento
-    if (moveForward) character.position.addScaledVector(direction, speed);
-    if (moveBackward) character.position.addScaledVector(direction, -speed);
-    if (moveLeft) character.position.addScaledVector(right, speed);
-    if (moveRight) character.position.addScaledVector(right, -speed);
   }
 
-  // Mantener altura del personaje
-  character.position.y = 0.5;
-}
+  const direction = new THREE.Vector3();
+  camera.getWorldDirection(direction);
+
+  if (moveForward) character.position.addScaledVector(direction, speed);
+  if (moveBackward) character.position.addScaledVector(direction, -speed);
+
+
+
+    character.position.y = 1;
+    character.position.x = 20;
+    character.position.z = 35; 
+  }
 
 ////////////////PUNTERO////////////////////////
 const raycaster = new THREE.Raycaster();
+
+
 
 function shootRay() {
   const origin = new THREE.Vector3();
