@@ -79,7 +79,11 @@ function updateCharacterMovement() {
 
 ////////////////PUNTERO////////////////////////
 const raycaster = new THREE.Raycaster();
-
+const enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
+const enemyMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
+enemy.position.set(0, 1, -5);
+scene.add(enemy);
 
 
 function shootRay() {
@@ -453,7 +457,7 @@ class Enemigo {
     this.speed = speed;
     this.isChasing = false;
     this.atacando = false;
-    this.lives = 3;
+    this.lives = 10;
   }
 
   actualizarPosicion(personaje) {
@@ -467,8 +471,8 @@ class Enemigo {
     direction.normalize();
 
     // Comportamiento de persecución
-    if (distance < 10) this.isChasing = true;
-    else if (distance > 20) this.isChasing = false;
+    if (distance < 100) this.isChasing = true;
+    else if (distance > 150) this.isChasing = false;
 
     // Movimiento hacia el jugador
     if (this.isChasing && distance > 2) {
@@ -486,6 +490,7 @@ class Enemigo {
   atacarJugador() {
     if (!this.atacando) {
       this.atacando = true;
+      console.log("¡El zombie atacó al jugador!");
       if (navigator.vibrate) navigator.vibrate(200);
       setTimeout(() => (this.atacando = false), 1500);
     }
@@ -493,6 +498,7 @@ class Enemigo {
 
   recibirDisparo() {
     this.lives--;
+    console.log("vida enemy", this.lives);
     if (this.lives <= 0) {
       scene.remove(this.enemyMesh);
       const idx = enemies.indexOf(this);
@@ -527,4 +533,3 @@ function animate() {
 
   renderer.render(scene, camera);
 }
-
