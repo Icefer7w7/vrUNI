@@ -43,7 +43,7 @@ const gravity = 0.01;
 const character = new THREE.Object3D();
 scene.add(character);
 character.add(camera);
-character.position.set(10, 1, 20); 
+character.position.set(20, 1, 30); 
 camera.position.set(10, 5.6, 30); 
 
 window.addEventListener("gamepadconnected", (event) => {
@@ -538,4 +538,3 @@ function animate() {
 
   renderer.render(scene, camera);
 }
-
