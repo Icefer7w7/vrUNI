@@ -43,7 +43,7 @@ const gravity = 0.01;
 const character = new THREE.Object3D();
 scene.add(character);
 character.add(camera);
-camera.position.set(0, 5.6, 0); 
+camera.position.set(10, 5.6, 30); 
 
 window.addEventListener("gamepadconnected", (event) => {
   console.log("Controlador conectado:", event.gamepad.id);
@@ -418,46 +418,40 @@ loaderFbx.load("modelos/CIELO.fbx", function(object1){
 })
 let mixer1;
 loaderFbx.load("modelos/Zombie Walk.fbx", function(object2){
-    object2.scale.x=0.005;
-    object2.scale.y=0.005;
-    object2.scale.z=0.005;
-
-    object2.position.set(-10,0.4,10)
+    object2.scale.set(0.005, 0.005, 0.005);
+    object2.position.set(-10, 0.4, 10);
     object2.rotation.y = 0;
+
     object2.traverse(function(child){
         if(child.isMesh){
-            child.material= zombie;
+            child.material = zombie;
         }
-    })
-        scene.add(object2)
-        					mixer1 = new THREE.AnimationMixer( object2 );
+    });
 
-						const action = mixer1.clipAction( object2.animations[ 0 ] );
-						action.play();
+    scene.add(object2);
 
-                            // Instanciar Enemigo y guardarlo
-    const enemyInstance = new Enemigo(object2, 0.02, mixer);
+    // Instanciar Enemigo y guardarlo
+    const enemyInstance = new Enemigo(object2, 0.02);
     enemies.push(enemyInstance);
 
-    // Asociar userData.enemyInstance en los meshes (para que raycast encuentre la instancia)
+    // Asociar referencia para raycast (cuando se dispare)
     object2.traverse((child) => {
       if (child.isMesh) {
         child.userData.enemyInstance = enemyInstance;
       }
     });
-
-})
+});
 
 ///ENEMIGOS///////////////////
 const enemies = [];
 
 class Enemigo {
-  constructor(mesh, speed = 0.03, mixer = null) {
+  constructor(mesh, speed = 0.03) {
     this.enemyMesh = mesh;
     this.speed = speed;
     this.isChasing = false;
     this.atacando = false;
-    this.mixer = mixer; // optional: para animaciones
+    this.lives = 10;
   }
 
   actualizarPosicion(personaje) {
@@ -466,22 +460,24 @@ class Enemigo {
     const enemyPos = this.enemyMesh.position;
     const playerPos = personaje.position;
 
-    // Dirección hacia el jugador
     const direction = new THREE.Vector3().subVectors(playerPos, enemyPos);
     const distance = direction.length();
     direction.normalize();
 
+    // Comportamiento de persecución
     if (distance < 100) this.isChasing = true;
     else if (distance > 150) this.isChasing = false;
 
+    // Movimiento hacia el jugador
     if (this.isChasing && distance > 2) {
       enemyPos.addScaledVector(direction, this.speed);
 
-      // Rotación para mirar al jugador (suave opcional abajo)
+      // Rotar hacia el jugador
       const targetRotation = Math.atan2(direction.x, direction.z);
       this.enemyMesh.rotation.y = targetRotation;
     }
 
+    // Si está cerca, atacar
     if (distance <= 2) this.atacarJugador();
   }
 
@@ -493,21 +489,18 @@ class Enemigo {
       setTimeout(() => (this.atacando = false), 1500);
     }
   }
-  
-recibirDisparo() {
-  this.lives = (this.lives || 10) - 1;
-  console.log('vida enemy', this.lives);
-  if (this.lives <= 0) {
-    // quitar de escena y del array
-    scene.remove(this.enemyMesh);
-    const idx = enemies.indexOf(this);
-    if (idx !== -1) enemies.splice(idx, 1);
-    // quitar mixer si existe
-    const mi = mixers.indexOf(this.mixer);
-    if (mi !== -1) mixers.splice(mi, 1);
+
+  recibirDisparo() {
+    this.lives--;
+    console.log("vida enemy", this.lives);
+    if (this.lives <= 0) {
+      scene.remove(this.enemyMesh);
+      const idx = enemies.indexOf(this);
+      if (idx !== -1) enemies.splice(idx, 1);
+    }
   }
 }
-}
+
 
 
 
