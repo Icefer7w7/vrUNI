@@ -43,34 +43,56 @@ const gravity = 0.01;
 const character = new THREE.Object3D();
 scene.add(character);
 character.add(camera);
-character.position.set(20, 2, 35);
 
-window.addEventListener("gamepadconnected", (event) => {
-  console.log("Controlador conectado:", event.gamepad.id);
-});
+// Posición inicial del jugador (solo una vez)
+character.position.set(20, 1, 35);
+camera.position.set(0, 1.6, 0); // cámara a altura de ojos
+
+
+// =================== MOVIMIENTO ===================
+let moveLeft = false;
+let moveRight = false;
+
+let rotationY = 0; // rotación del jugador
+
 
 function updateCharacterMovement() {
   const gamepads = navigator.getGamepads();
-  if (gamepads[0]) {
-    const gp = gamepads[0];
-    const leftStickY = gp.axes[1];
+  if (!gamepads[0]) return;
 
-    moveForward = leftStickY < -0.1;
-    moveBackward = leftStickY > 0.1;
+  const gp = gamepads[0];
 
-        if (gp.buttons[7].value > 0.5) {
-      shootRay();
-    }
+  // Joystick izquierdo → movimiento adelante/atrás e izquierda/derecha
+  const leftStickX = gp.axes[0];
+  const leftStickY = gp.axes[1];
 
+  moveForward = leftStickY < -0.2;
+  moveBackward = leftStickY > 0.2;
+  moveLeft = leftStickX < -0.2;
+  moveRight = leftStickX > 0.2;
+
+  // Joystick derecho → rotación horizontal
+  const rightStickX = gp.axes[2];
+  rotationY -= rightStickX * 0.05; // sensibilidad de giro
+
+  // Actualizar dirección del personaje
+  const forward = new THREE.Vector3(Math.sin(rotationY), 0, Math.cos(rotationY));
+  const right = new THREE.Vector3(Math.cos(rotationY), 0, -Math.sin(rotationY));
+
+  // Movimiento en base a dirección actual
+  if (moveForward) character.position.addScaledVector(forward, speed);
+  if (moveBackward) character.position.addScaledVector(forward, -speed);
+  if (moveLeft) character.position.addScaledVector(right, -speed);
+  if (moveRight) character.position.addScaledVector(right, speed);
+
+  // Rotar personaje y cámara
+  character.rotation.y = rotationY;
+
+  // Botón gatillo (R2) dispara
+  if (gp.buttons[7].value > 0.5) {
+    shootRay();
   }
-
-  const direction = new THREE.Vector3();
-  camera.getWorldDirection(direction);
-
-  if (moveForward) character.position.addScaledVector(direction, speed);
-  if (moveBackward) character.position.addScaledVector(direction, -speed);
-
-  }
+}
 
 ////////////////PUNTERO////////////////////////
 const raycaster = new THREE.Raycaster();
