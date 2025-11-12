@@ -451,7 +451,7 @@ class Enemigo {
     this.speed = speed;
     this.isChasing = false;
     this.atacando = false;
-    this.lives = 10;
+    this.lives = 2;
   }
 
   actualizarPosicion(personaje) {
@@ -527,3 +527,4 @@ function animate() {
 
   renderer.render(scene, camera);
 }
+
