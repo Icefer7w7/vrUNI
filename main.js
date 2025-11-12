@@ -93,16 +93,23 @@ function shootRay() {
   camera.getWorldDirection(direction);
 
   raycaster.set(origin, direction);
-  const intersects = raycaster.intersectObject(enemy);
+  
+  // Detectar colisiones con todos los enemigos
+  const intersects = raycaster.intersectObjects(scene.children, true);
 
-  if (intersects.length > 0) {
-    console.log("¡Enemigo alcanzado!");
-    scene.remove(enemy);
-
-    // Vibración del control
-    if (navigator.vibrate) navigator.vibrate(200);
+  for (let i = 0; i < intersects.length; i++) {
+    const obj = intersects[i].object;
+    
+    // Verificar si el objeto tiene una referencia al enemigo
+    if (obj.userData.enemyInstance) {
+      const enemyInstance = obj.userData.enemyInstance;
+      enemyInstance.recibirDisparo();
+      
+      console.log("¡Enemigo alcanzado!");
+      if (navigator.vibrate) navigator.vibrate(200);
+      break; // Solo afecta al primer enemigo golpeado
+    }
   }
-   
 }
 
 //////////////////////// GAMEPAD ////////////////////////
