@@ -1,3 +1,4 @@
+
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
@@ -7,7 +8,7 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 ////////////////////////ESCENA//////////////////
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-//scene.fog = new THREE.FogExp2(0x2E2E2E, 0.07);  // Color y densidad
+scene.fog = new THREE.FogExp2(0x2E2E2E, 0.07);  // Color y densidad
 
 
 // Crear AudioListener y agregar a la cámara
@@ -75,7 +76,7 @@ const controls = new OrbitControls( camera, renderer.domElement );
 let gamepad;
 let moveForward = false;
 let moveBackward = false;
-const speed = 0.09;
+const speed = 0.1;
 const gravity = 0.01;
 
 const character = new THREE.Object3D();
@@ -196,7 +197,7 @@ function updateCharacterMovement() {
   }
 
   // Mantener altura (Y)
-  character.position.y = 0.35;
+  character.position.y = 0.6;
 }
 
 ////////////////PUNTERO////////////////////////
@@ -374,7 +375,9 @@ function updatePointer() {
 
 
 //ESCENA////////////////////////////
-
+//ESCOPETA/////////////////////
+let escopetaMesh = null;
+let disparoMesh = null;
 let lastShotTime = 0;
 const shotCooldown = 1000; // 1 segundo en milisegundos
 
@@ -579,11 +582,39 @@ loaderFbx.load("modelos/CIELO.fbx", function(object1){
     })
         scene.add(object1)
 })
+// Cargar escopeta
+loaderFbx.load("modelos/escopeta.fbx", function(object){
+  object.scale.set(0.1, 0.1, 0.1);
+  object.position.set(0, -0.2, -0.8); // Derecha del jugador
+  
+  object.traverse(function(child){
+    if(child.isMesh){
+      child.material = escopeta;
+    }
+  });
+  
+  camera.add(object); // Añadir a la cámara para que siga al jugador
+  escopetaMesh = object;
+});
 
-
+// Cargar disparo (flash)
+loaderFbx.load("modelos/disparo.fbx", function(object){
+  object.scale.set(0.1, 0.1, 0.1);
+  object.position.set(-0.2, -0.2, -1); // Enfrente de la escopeta
+  object.visible = false; // Inicialmente invisible
+  
+  object.traverse(function(child){
+    if(child.isMesh){
+      child.material = disparo;
+    }
+  });
+  
+  camera.add(object); // Añadir a la cámara
+  disparoMesh = object;
+});
 let mixer1;
 loaderFbx.load("modelos/Zombie Walk.fbx", function(object2){
-    object2.scale.set(0.003, 0.003, 0.003);
+    object2.scale.set(0.004, 0.004, 0.004);
     object2.position.set(-10, 0.3, 10);
     object2.rotation.y = 0;
 
@@ -599,7 +630,7 @@ mixer1 = new THREE.AnimationMixer( object2 );
 						const action = mixer1.clipAction( object2.animations[ 0 ] );
 						action.play();
     // Instanciar Enemigo y guardarlo
-    const enemyInstance = new Enemigo(object2, 0.015);
+    const enemyInstance = new Enemigo(object2, 0.01);
     enemyInstance.mixer = mixer1;
     enemies.push(enemyInstance);
 
@@ -646,7 +677,7 @@ function spawnZombie() {
     action.play();
     
     // Instanciar Enemigo
-    const enemyInstance = new Enemigo(object2, 0.015);
+    const enemyInstance = new Enemigo(object2, 0.005);
     enemyInstance.mixer = mixer; // Guardar mixer para actualizar en animate
     enemies.push(enemyInstance);
 
@@ -659,7 +690,7 @@ function spawnZombie() {
   });
 }
 class Enemigo {
-  constructor(mesh, speed = 0.05) {
+  constructor(mesh, speed = 0.03) {
     this.enemyMesh = mesh;
     this.speed = speed;
     this.isChasing = false;
