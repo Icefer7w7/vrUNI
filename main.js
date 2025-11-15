@@ -47,7 +47,10 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 				document.body.appendChild( VRButton.createButton( renderer ) );
 //sonido//////////////////////
 const disparoSound = new Audio('sonidos/escopeta online.mp3');
-disparoSound.volume = 0.5; 
+disparoSound.volume = 0.25; 
+
+const pickupSound = new Audio('sonidos/obtener.mp3');
+pickupSound.volume = 0.4;
 
 const zombieSounds = [
   new Audio('sonidos/zombieSS.mp3'),
@@ -816,6 +819,7 @@ scene.add( Ambientlight );
 
 const clock = new THREE.Clock();
 
+
 const lookAt = new THREE.Vector3().copy(playerPos);
 lookAt.y = enemyPos.y; // mantén la misma altura
 this.enemyMesh.lookAt(lookAt);
@@ -825,19 +829,27 @@ function animate() {
   updateCharacterMovement();
   updatePointer();
 
-  // Hacer girar la escopeta y detectar pickup
+  // Hacer girar la escopeta en el suelo y detectar pickup
   if (weaponOnGround && !weaponEquipped) {
     weaponOnGround.rotation.y += 0.01; // girar lentamente
-    
+
     // detectar si el jugador pasó por encima
     const d = character.position.distanceTo(weaponOnGround.position);
     if (d < pickupDistance) {
-      // quitar escopeta y spotlight
-      scene.remove(weaponOnGround);
-      if (weaponSpotlight && weaponSpotlight.target) {
-        scene.remove(weaponSpotlight.target);
+      // reproducir sonido de pickup (safe play)
+      try {
+        pickupSound.currentTime = 0;
+        pickupSound.play();
+      } catch (e) {
+        console.warn('No se pudo reproducir pickupSound:', e);
       }
-      scene.remove(weaponSpotlight);
+
+      // quitar escopeta y spotlight (y su target) del scene
+      scene.remove(weaponOnGround);
+      if (weaponSpotlight) {
+        if (weaponSpotlight.target) scene.remove(weaponSpotlight.target);
+        scene.remove(weaponSpotlight);
+      }
       weaponOnGround = null;
       weaponSpotlight = null;
       weaponEquipped = true;
@@ -845,8 +857,8 @@ function animate() {
   }
 
   const currentTime = Date.now();
-  
-  // Spawnear nuevo zombie cada 10 segundos
+
+  // Spawnear nuevo zombie cada interval (mantener comportamiento actual)
   if (currentTime - lastZombieSpawnTime > zombieSpawnInterval) {
     spawnZombie();
     lastZombieSpawnTime = currentTime;
