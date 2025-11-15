@@ -18,13 +18,13 @@ camera.add(audioListener);
 const audio = new THREE.Audio(audioListener);
 
 // Cargar el archivo de música
-const music = new Audio('sonidos/musica.mp3');
-music.loop = true;
-music.volume = 0.1;
-
-setTimeout(() => {
-  music.play();
-}, 5000);
+const audioLoader = new THREE.AudioLoader();
+audioLoader.load('sonidos/musica.mp3', function(audioBuffer) {
+  audio.setBuffer(audioBuffer);
+  audio.setLoop(true);           
+  audio.setVolume(0.1);        
+  audio.play();     
+});
 
 
 const renderer = new THREE.WebGLRenderer();
