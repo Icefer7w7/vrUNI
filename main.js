@@ -8,7 +8,7 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 ////////////////////////ESCENA//////////////////
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-scene.fog = new THREE.FogExp2(0x2E2E2E, 0.07);  // Color y densidad
+scene.fog = new THREE.FogExp2(0x2E2E2E, 0.08);  // Color y densidad
 
 
 // Crear AudioListener y agregar a la cámara
@@ -652,7 +652,7 @@ mixer1 = new THREE.AnimationMixer( object2 );
 						const action = mixer1.clipAction( object2.animations[ 0 ] );
 						action.play();
     // Instanciar Enemigo y guardarlo
-    const enemyInstance = new Enemigo(object2, 0.02);
+    const enemyInstance = new Enemigo(object2, 0.025);
     enemyInstance.mixer = mixer1;
     enemies.push(enemyInstance);
 
@@ -699,7 +699,7 @@ function spawnZombie() {
     action.play();
     
     // Instanciar Enemigo
-    const enemyInstance = new Enemigo(object2, 0.02);
+    const enemyInstance = new Enemigo(object2, 0.025);
     enemyInstance.mixer = mixer; // Guardar mixer para actualizar en animate
     enemies.push(enemyInstance);
 
@@ -814,7 +814,7 @@ class Enemigo {
 
 ///LUCES/////////////
 
-const Ambientlight = new THREE.AmbientLight( 0x3B3B3B ); 
+const Ambientlight = new THREE.AmbientLight( 0x1E2E26 ); 
 scene.add( Ambientlight );
 
 const clock = new THREE.Clock();
