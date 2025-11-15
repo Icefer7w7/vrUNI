@@ -341,11 +341,14 @@ const zombie = new THREE.MeshStandardMaterial({
 const e1 = new THREE.TextureLoader().load('text/escopeta/esco_Base_color.png');
 const e2 = new THREE.TextureLoader().load('text/escopeta/esco_Normal_OpenGL.png');
 const e3 = new THREE.TextureLoader().load('text/escopeta/esco_Roughness.png');
+const e4 = new THREE.TextureLoader().load('text/escopeta/esco_Metallic.png');
 
 const escopeta = new THREE.MeshStandardMaterial({
   map: e1,
     normalMap: e2,
-    roughnessMap: e3
+    roughnessMap: e3,
+     metalness: 1,          // asegurarte que ocupe el mapa
+  metalnessMap: e4,
     
 });
 
@@ -374,9 +377,7 @@ function updatePointer() {
 
 
 //ESCENA////////////////////////////
-//ESCOPETA/////////////////////
-let escopetaMesh = null;
-let disparoMesh = null;
+
 let lastShotTime = 0;
 const shotCooldown = 1000; // 1 segundo en milisegundos
 
@@ -581,49 +582,73 @@ loaderFbx.load("modelos/CIELO.fbx", function(object1){
     })
         scene.add(object1)
 })
-// Cargar escopeta
-loaderFbx.load("modelos/escopeta.fbx", function(object){
-  object.scale.set(0.1, 0.1, 0.1);
-  object.position.set(0, -0.2, -0.8); // Derecha del jugador
-  
-  object.traverse(function(child){
+///////////////// Cargar escopeta
+let weaponOnGround = null;
+let weaponSpotlight = null;
+let weaponEquipped = false;
+let allowSpawning = false;
+const pickupDistance = 1.2;
+const weaponPlaceDistance = 3;
+
+
+loaderFbx.load("modelos/escopetaUV.fbx", function(object){
+  // usar el objeto cargado como la arma en el suelo
+  const ground = object;
+  ground.scale.set(0.005, 0.005, 0.005);
+
+  // calcular posición delante del personaje (respecto a la cámara)
+  const forward = new THREE.Vector3();
+  camera.getWorldDirection(forward);
+  forward.y = 0;
+  forward.normalize();
+
+  const spawnPos = new THREE.Vector3().copy(character.position).addScaledVector(forward, weaponPlaceDistance);
+  ground.position.set(spawnPos.x, 1, spawnPos.z);
+  ground.rotation.y = Math.PI * 0.2;
+
+  ground.traverse(function(child){
     if(child.isMesh){
       child.material = escopeta;
+      child.castShadow = true;
+      child.receiveShadow = true;
     }
   });
-  
-  escopetaMesh = object;
+
+  scene.add(ground);
+  weaponOnGround = ground;
+
+  // spotlight arriba de la escopeta para destacarla
+  weaponSpotlight = new THREE.SpotLight(0xffffff, 2, 15, Math.PI/8, 0.6);
+  weaponSpotlight.position.set(spawnPos.x+0.1, spawnPos.y + 6.0, spawnPos.z);
+  // crear target explícito para que apunte a la arma
+  const spotTarget = new THREE.Object3D();
+  spotTarget.position.copy(ground.position);
+  scene.add(spotTarget);
+  weaponSpotlight.target = spotTarget;
+
+  scene.add(weaponSpotlight);
 });
 
 let mixer1;
-loaderFbx.load("modelos/Zombie Walk.fbx", function(object2){
-    object2.scale.set(0.003, 0.003, 0.003);
-    object2.position.set(-10, 0.3, 10);
-    object2.rotation.y = 0;
 
-    object2.traverse(function(child){
-        if(child.isMesh){
-            child.material = zombie;
-        }
-    });
+//EQUIPAR ESCOPETA
+function equipWeapon() {
+  if (weaponEquipped) return;
+  weaponEquipped = true;
 
-    scene.add(object2);
-mixer1 = new THREE.AnimationMixer( object2 );
+  if (weaponOnGround) {
+    scene.remove(weaponOnGround);
+    weaponOnGround = null;
+  }
+  if (weaponSpotlight) {
+    if (weaponSpotlight.target) scene.remove(weaponSpotlight.target);
+    scene.remove(weaponSpotlight);
+    weaponSpotlight = null;
+  }
 
-						const action = mixer1.clipAction( object2.animations[ 0 ] );
-						action.play();
-    // Instanciar Enemigo y guardarlo
-    const enemyInstance = new Enemigo(object2, 0.015);
-    enemyInstance.mixer = mixer1;
-    enemies.push(enemyInstance);
-
-    // Asociar referencia para raycast (cuando se dispare)
-    object2.traverse((child) => {
-      if (child.isMesh) {
-        child.userData.enemyInstance = enemyInstance;
-      }
-    });
-});
+  allowSpawning = true;
+  lastZombieSpawnTime = Date.now();
+}
 
 ///ENEMIGOS///////////////////
 const enemies = [];
@@ -791,9 +816,19 @@ function animate() {
   updatePointer();
 
   const currentTime = Date.now();
-  
-  // Spawnear nuevo zombie cada 10 segundos
-  if (currentTime - lastZombieSpawnTime > zombieSpawnInterval) {
+
+  // rotar arma en el suelo para que sea visible y detectar pickup
+  if (weaponOnGround) {
+    weaponOnGround.rotation.y += 0.01;
+    // detectar si el personaje pasó por encima
+    const d = character.position.distanceTo(weaponOnGround.position);
+    if (!weaponEquipped && d < pickupDistance) {
+      equipWeapon();
+    }
+  }
+
+  // Spawnear nuevo zombie SOLO si ya se recogió el arma
+  if (allowSpawning && currentTime - lastZombieSpawnTime > zombieSpawnInterval) {
     spawnZombie();
     lastZombieSpawnTime = currentTime;
   }
