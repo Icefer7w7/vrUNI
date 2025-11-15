@@ -92,7 +92,7 @@ const hud = document.createElement('div');
 hud.id = 'hud';
 Object.assign(hud.style, {
   position: 'absolute',
-  left: '10px',
+  right: '10px',
   top: '10px',
   zIndex: '9999',
   display: 'flex',
@@ -250,7 +250,6 @@ function shootRay() {
       const enemyInstance = obj.userData.enemyInstance;
       enemyInstance.recibirDisparo();
       
-      console.log("¡Enemigo alcanzado!");
       if (navigator.vibrate) navigator.vibrate(200);
       break; // Solo afecta al primer enemigo golpeado
     }
@@ -585,7 +584,7 @@ loaderFbx.load("modelos/CIELO.fbx", function(object1){
 // Cargar escopeta
 loaderFbx.load("modelos/escopeta.fbx", function(object){
   object.scale.set(0.1, 0.1, 0.1);
-  object.position.set(0.5, -0.3, -0.8); // Derecha del jugador
+  object.position.set(0, -0.2, -0.8); // Derecha del jugador
   
   object.traverse(function(child){
     if(child.isMesh){
@@ -600,7 +599,7 @@ loaderFbx.load("modelos/escopeta.fbx", function(object){
 // Cargar disparo (flash)
 loaderFbx.load("modelos/disparo.fbx", function(object){
   object.scale.set(0.1, 0.1, 0.1);
-  object.position.set(0.7, -0.2, -1); // Enfrente de la escopeta
+  object.position.set(-0.2, -0.2, -1); // Enfrente de la escopeta
   object.visible = false; // Inicialmente invisible
   
   object.traverse(function(child){
@@ -695,7 +694,7 @@ class Enemigo {
     this.speed = speed;
     this.isChasing = false;
     this.atacando = false;
-    this.lives = 10;
+    this.lives = 1;
   }
 
   actualizarPosicion(personaje) {
@@ -743,7 +742,7 @@ class Enemigo {
   recibirDisparo() {
     this.lives--;
     console.log("vida enemy", this.lives);
-    if (this.lives <= 0) {
+    if (this.lives <= 1) {
       scene.remove(this.enemyMesh);
       const idx = enemies.indexOf(this);
       if (idx !== -1) enemies.splice(idx, 1);
