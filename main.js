@@ -649,7 +649,7 @@ mixer1 = new THREE.AnimationMixer( object2 );
 						const action = mixer1.clipAction( object2.animations[ 0 ] );
 						action.play();
     // Instanciar Enemigo y guardarlo
-    const enemyInstance = new Enemigo(object2, 0.01);
+    const enemyInstance = new Enemigo(object2, 0.02);
     enemyInstance.mixer = mixer1;
     enemies.push(enemyInstance);
 
@@ -696,7 +696,7 @@ function spawnZombie() {
     action.play();
     
     // Instanciar Enemigo
-    const enemyInstance = new Enemigo(object2, 0.005);
+    const enemyInstance = new Enemigo(object2, 0.02);
     enemyInstance.mixer = mixer; // Guardar mixer para actualizar en animate
     enemies.push(enemyInstance);
 
@@ -755,7 +755,6 @@ class Enemigo {
   atacarJugador() {
     if (!this.atacando) {
       this.atacando = true;
-      console.log("¡El zombie atacó al jugador!");
       zombieAttackSound.currentTime = 0;
       zombieAttackSound.play();
 
