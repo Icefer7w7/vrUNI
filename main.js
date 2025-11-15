@@ -704,6 +704,7 @@ class Enemigo {
     this.isChasing = false;
     this.atacando = false;
     this.lives = 2; // ahora tienen 2 vidas
+    this.dead = false;
 
     // Guardar referencias a las mallas y su material original para restaurar después
     this.meshParts = [];
@@ -756,16 +757,15 @@ class Enemigo {
     }
   }
 
-  recibirDisparo() {
+    recibirDisparo() {
+    if (this.dead) return; // ya marcado
     this.lives--;
     console.log("vida enemy", this.lives);
 
     // Si perdieron 1 vida (primera vez), ponerse rojos 0.3s y luego volver al material original
     if (this.lives === 1) {
       this.meshParts.forEach((m) => {
-        // almacenar material original si no está ya guardado
         if (!m.userData._origMaterial) m.userData._origMaterial = m.material;
-        // clonar material y colorear rojo para evitar modificar material compartido
         let redMat;
         try {
           redMat = m.userData._redMaterial || (m.material.clone ? m.material.clone() : new THREE.MeshStandardMaterial());
@@ -784,16 +784,14 @@ class Enemigo {
             m.material = m.userData._origMaterial;
             delete m.userData._origMaterial;
           }
-          // opcional: conservar red material en cache para reuso
         });
-      }, 300); // 300 ms
+      }, 300);
     }
 
-    // Si ya no quedan vidas, eliminar
+    // Marcar para eliminar en el siguiente frame (evita mutar scene/arrays en medio de raycast/iteraciones)
     if (this.lives <= 0) {
-      if (this.enemyMesh.parent) this.enemyMesh.parent.remove(this.enemyMesh);
-      const idx = enemies.indexOf(this);
-      if (idx !== -1) enemies.splice(idx, 1);
+      this.dead = true;
+      enemiesToRemove.push(this);
     }
   }
 }
@@ -806,7 +804,7 @@ scene.add( Ambientlight );
 
 const clock = new THREE.Clock();
 
-
+const enemiesToRemove = [];
 
 function animate() {
   updateCharacterMovement();
@@ -817,7 +815,6 @@ function animate() {
   // rotar arma en el suelo para que sea visible y detectar pickup
   if (weaponOnGround) {
     weaponOnGround.rotation.y += 0.01;
-    // detectar si el personaje pasó por encima
     const d = character.position.distanceTo(weaponOnGround.position);
     if (!weaponEquipped && d < pickupDistance) {
       equipWeapon();
@@ -831,14 +828,33 @@ function animate() {
   }
 
   // Actualizar posiciones y animaciones de zombies
-  for (let i = 0; i < enemies.length; i++) {
-    enemies[i].actualizarPosicion(character);
-    if (enemies[i].mixer) {
-      enemies[i].mixer.update(0.016); // ~60 FPS
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    e.actualizarPosicion(character);
+    if (e.mixer) {
+      e.mixer.update(0.016); // ~60 FPS
     }
+  }
+
+  // Remover enemigos marcados (fuera de cualquier bucle de raycast/iteración)
+  if (enemiesToRemove.length > 0) {
+    enemiesToRemove.forEach((e) => {
+      try {
+        if (e.mixer) {
+          // opcional: detener y limpiar mixer
+          // no hay método dispose estándar, pero podemos quitar referencias
+          e.mixer.stopAllAction && e.mixer.stopAllAction();
+        }
+        if (e.enemyMesh && e.enemyMesh.parent) e.enemyMesh.parent.remove(e.enemyMesh);
+      } catch (err) {
+        console.warn('Error al remover enemigo:', err);
+      }
+      const idx = enemies.indexOf(e);
+      if (idx !== -1) enemies.splice(idx, 1);
+    });
+    enemiesToRemove.length = 0;
   }
 
   const delta = clock.getDelta();
   renderer.render( scene, camera );
 }
-
