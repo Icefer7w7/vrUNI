@@ -91,9 +91,9 @@ let playerLives = maxLives;
 const hud = document.createElement('div');
 hud.id = 'hud';
 Object.assign(hud.style, {
-  position: 'absolute',
+  position: 'fixed',
   left: '400px',
-  top: '190px',
+  top: '20px',
   zIndex: '9999',
   display: 'flex',
   gap: '6px',
