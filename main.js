@@ -341,14 +341,11 @@ const zombie = new THREE.MeshStandardMaterial({
 const e1 = new THREE.TextureLoader().load('text/escopeta/esco_Base_color.png');
 const e2 = new THREE.TextureLoader().load('text/escopeta/esco_Normal_OpenGL.png');
 const e3 = new THREE.TextureLoader().load('text/escopeta/esco_Roughness.png');
-const e4 = new THREE.TextureLoader().load('text/escopeta/esco_Metallic.png');
 
 const escopeta = new THREE.MeshStandardMaterial({
   map: e1,
     normalMap: e2,
-    roughnessMap: e3,
-    metalness: 0.9,        
-  metalnessMap: e4,
+    roughnessMap: e3
     
 });
 
@@ -582,41 +579,7 @@ loaderFbx.load("modelos/CIELO.fbx", function(object1){
     })
         scene.add(object1)
 })
-///////////////// Cargar escopeta
-// Variables para el pickup de arma
-let weaponOnGround = null;
-let weaponSpotlight = null;
-let weaponEquipped = false;
-const pickupDistance = 1.2;
 
-// ...existing code... (antes de cargar escopeta)
-
-///////////////// Cargar escopeta en el mundo
-
-loaderFbx.load("modelos/escopetaUV.fbx", function(object){
-  object.scale.set(0.01, 0.01, 0.01);
-  object.position.set(20, 1, 26); 
-  
-  object.traverse(function(child){
-    if(child.isMesh){
-      child.material = escopeta;
-    }
-  });
-  
-  scene.add(object);
-  weaponOnGround = object; // guardar referencia
-  
-  // crear spotlight arriba de la escopeta
-  weaponSpotlight = new THREE.SpotLight(0xffffff, 10, 14, Math.PI/8, 0.6);
-  weaponSpotlight.position.set(object.position.x, object.position.y + 10, object.position.z);
-  
-  const spotTarget = new THREE.Object3D();
-  spotTarget.position.copy(object.position);
-  scene.add(spotTarget);
-  weaponSpotlight.target = spotTarget;
-  
-  scene.add(weaponSpotlight);
-});
 
 let mixer1;
 loaderFbx.load("modelos/Zombie Walk.fbx", function(object2){
@@ -812,25 +775,6 @@ this.enemyMesh.lookAt(lookAt);
 function animate() {
   updateCharacterMovement();
   updatePointer();
-
-  // Hacer girar la escopeta y detectar pickup
-  if (weaponOnGround && !weaponEquipped) {
-    weaponOnGround.rotation.y += 0.01; // girar lentamente
-    
-    // detectar si el jugador pasó por encima
-    const d = character.position.distanceTo(weaponOnGround.position);
-    if (d < pickupDistance) {
-      // quitar escopeta y spotlight
-      scene.remove(weaponOnGround);
-      if (weaponSpotlight && weaponSpotlight.target) {
-        scene.remove(weaponSpotlight.target);
-      }
-      scene.remove(weaponSpotlight);
-      weaponOnGround = null;
-      weaponSpotlight = null;
-      weaponEquipped = true;
-    }
-  }
 
   const currentTime = Date.now();
   
