@@ -196,7 +196,7 @@ function updateCharacterMovement() {
   }
 
   // Mantener altura (Y)
-  character.position.y = 0.6;
+  character.position.y = 0.4;
 }
 
 ////////////////PUNTERO////////////////////////
@@ -676,7 +676,7 @@ function spawnZombie() {
     action.play();
     
     // Instanciar Enemigo
-    const enemyInstance = new Enemigo(object2, 0.005);
+    const enemyInstance = new Enemigo(object2, 0.01);
     enemyInstance.mixer = mixer; // Guardar mixer para actualizar en animate
     enemies.push(enemyInstance);
 
