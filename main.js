@@ -92,8 +92,8 @@ const hud = document.createElement('div');
 hud.id = 'hud';
 Object.assign(hud.style, {
   position: 'absolute',
-  right: '10px',
-  top: '10px',
+  left: '400px',
+  top: '190px',
   zIndex: '9999',
   display: 'flex',
   gap: '6px',
