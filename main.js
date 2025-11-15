@@ -75,7 +75,7 @@ const controls = new OrbitControls( camera, renderer.domElement );
 let gamepad;
 let moveForward = false;
 let moveBackward = false;
-const speed = 0.1;
+const speed = 0.09;
 const gravity = 0.01;
 
 const character = new THREE.Object3D();
@@ -196,7 +196,7 @@ function updateCharacterMovement() {
   }
 
   // Mantener altura (Y)
-  character.position.y = 0.4;
+  character.position.y = 0.35;
 }
 
 ////////////////PUNTERO////////////////////////
@@ -209,49 +209,36 @@ scene.add(enemy);
 
 
 function shootRay() {
+  if (!weaponEquipped) return; // no dispara si no tiene arma
+
   const currentTime = Date.now();
-  
-  // Verificar cooldown de 1 segundo
-  if (currentTime - lastShotTime < shotCooldown) {
-    return; // No disparar aún
-  }
-  
+  if (currentTime - lastShotTime < shotCooldown) return;
   lastShotTime = currentTime;
 
   disparoSound.currentTime = 0;
   disparoSound.play();
 
-  // Mostrar flash de disparo por 0.5 segundos
-  if (disparoMesh) {
-    disparoMesh.visible = true;
-    setTimeout(() => {
-      if (disparoMesh) disparoMesh.visible = false;
-    }, 500);
+  if (flashInHand) {
+    flashInHand.visible = true;
+    setTimeout(() => { if (flashInHand) flashInHand.visible = false; }, 500);
   }
 
-  // Origen del disparo
+  // Origen y dirección desde la cámara/puntero
   const origin = new THREE.Vector3();
   camera.getWorldPosition(origin);
-
-  // Dirección del disparo
   const direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
 
   raycaster.set(origin, direction);
-  
-  // Detectar colisiones con todos los enemigos
   const intersects = raycaster.intersectObjects(scene.children, true);
 
   for (let i = 0; i < intersects.length; i++) {
     const obj = intersects[i].object;
-    
-    // Verificar si el objeto tiene una referencia al enemigo
     if (obj.userData.enemyInstance) {
       const enemyInstance = obj.userData.enemyInstance;
       enemyInstance.recibirDisparo();
-      
-      if (navigator.vibrate) navigator.vibrate(200);
-      break; // Solo afecta al primer enemigo golpeado
+      if (navigator.vibrate) navigator.vibrate(120);
+      break;
     }
   }
 }
@@ -583,63 +570,40 @@ loaderFbx.load("modelos/CIELO.fbx", function(object1){
 })
 // Cargar escopeta
 loaderFbx.load("modelos/escopeta.fbx", function(object){
-  object.scale.set(0.1, 0.1, 0.1);
-  object.position.set(0, -0.2, -0.8); // Derecha del jugador
+  // instancia para mostrar en mano (seguirá al puntero mediante weaponGroup)
+  const hand = object.clone();
+  hand.scale.set(0.35, 0.35, 0.35);
+  hand.position.set(-0.35, -0.25, -1.0); // delante/izquierda del puntero
+  hand.traverse((c) => { if (c.isMesh) c.material = escopeta; });
+  weaponInHand = hand;
+  weaponGroup.add(weaponInHand);
   
-  object.traverse(function(child){
-    if(child.isMesh){
-      child.material = escopeta;
-    }
-  });
-  
-  camera.add(object); // Añadir a la cámara para que siga al jugador
-  escopetaMesh = object;
-});
+  // instancia para el suelo (pickup)
+  const ground = object.clone();
+  ground.scale.set(0.9, 0.9, 0.9);
+  ground.position.set(5, 0.12, 5); // ajusta donde quieras que esté la escopeta en el mundo
+  ground.rotation.y = Math.PI * 0.2;
+  ground.traverse((c) => { if (c.isMesh) c.material = escopeta; });
+  scene.add(ground);
+  weaponOnGround = ground;
 
-// Cargar disparo (flash)
+  // spotlight arriba de la escopeta en el suelo
+  weaponSpotlight = new THREE.SpotLight(0xffffff, 1.2, 6, Math.PI/8, 0.6);
+  weaponSpotlight.position.set(ground.position.x, ground.position.y + 2.0, ground.position.z);
+  weaponSpotlight.target.position.copy(ground.position);
+  scene.add(weaponSpotlight);
+  scene.add(weaponSpotlight.target);
+});
 loaderFbx.load("modelos/disparo.fbx", function(object){
-  object.scale.set(0.1, 0.1, 0.1);
-  object.position.set(-0.2, -0.2, -1); // Enfrente de la escopeta
-  object.visible = false; // Inicialmente invisible
-  
-  object.traverse(function(child){
-    if(child.isMesh){
-      child.material = disparo;
-    }
-  });
-  
-  camera.add(object); // Añadir a la cámara
-  disparoMesh = object;
+  const flash = object.clone();
+  flash.scale.set(0.25, 0.25, 0.25);
+  flash.position.set(-0.15, -0.18, -1.5);
+  flash.visible = false;
+  flash.traverse((c) => { if (c.isMesh) c.material = disparo; });
+  flashInHand = flash;
+  weaponGroup.add(flashInHand);
 });
-let mixer1;
-loaderFbx.load("modelos/Zombie Walk.fbx", function(object2){
-    object2.scale.set(0.004, 0.004, 0.004);
-    object2.position.set(-10, 0.3, 10);
-    object2.rotation.y = 0;
 
-    object2.traverse(function(child){
-        if(child.isMesh){
-            child.material = zombie;
-        }
-    });
-
-    scene.add(object2);
-mixer1 = new THREE.AnimationMixer( object2 );
-
-						const action = mixer1.clipAction( object2.animations[ 0 ] );
-						action.play();
-    // Instanciar Enemigo y guardarlo
-    const enemyInstance = new Enemigo(object2, 0.01);
-    enemyInstance.mixer = mixer1;
-    enemies.push(enemyInstance);
-
-    // Asociar referencia para raycast (cuando se dispare)
-    object2.traverse((child) => {
-      if (child.isMesh) {
-        child.userData.enemyInstance = enemyInstance;
-      }
-    });
-});
 
 ///ENEMIGOS///////////////////
 const enemies = [];
@@ -676,7 +640,7 @@ function spawnZombie() {
     action.play();
     
     // Instanciar Enemigo
-    const enemyInstance = new Enemigo(object2, 0.01);
+    const enemyInstance = new Enemigo(object2, 0.015);
     enemyInstance.mixer = mixer; // Guardar mixer para actualizar en animate
     enemies.push(enemyInstance);
 
@@ -689,7 +653,7 @@ function spawnZombie() {
   });
 }
 class Enemigo {
-  constructor(mesh, speed = 0.03) {
+  constructor(mesh, speed = 0.05) {
     this.enemyMesh = mesh;
     this.speed = speed;
     this.isChasing = false;
@@ -789,6 +753,49 @@ class Enemigo {
   }
 }
 
+//WEAPON COJER//////////////////////////////////////////////
+
+const weaponGroup = new THREE.Group(); // seguirá al usuario (en mano)
+scene.add(weaponGroup);
+weaponGroup.visible = false; // no visible hasta que se equipe
+
+let weaponInHand = null;       // modelo que se muestra delante del puntero cuando equipado
+let flashInHand = null;        // mesh de "disparo" que se muestra 0.5s
+let weaponOnGround = null;     // modelo en el suelo para pickup
+let weaponSpotlight = null;    // luz sobre la arma en el suelo
+let weaponEquipped = false;    // true cuando el jugador recoge el arma
+let allowSpawning = false;     // control para que los zombies empiecen a salir solo después de recoger el arma
+const pickupDistance = 1.2;  
+
+function updateWeaponPosition() {
+  const cameraWorldPos = new THREE.Vector3();
+  const cameraWorldQuat = new THREE.Quaternion();
+  camera.getWorldPosition(cameraWorldPos);
+  camera.getWorldQuaternion(cameraWorldQuat);
+
+  // posiciona el grupo ligeramente delante de la cámara/puntero
+  weaponGroup.position.copy(cameraWorldPos);
+  weaponGroup.quaternion.copy(cameraWorldQuat);
+}
+
+// Equipar arma (al recogerla)
+function equipWeapon() {
+  if (weaponEquipped) return;
+  weaponEquipped = true;
+  weaponGroup.visible = true;
+  if (weaponOnGround) {
+    // opcional: animación o sonido de recogida
+    scene.remove(weaponOnGround);
+    weaponOnGround = null;
+  }
+  if (weaponSpotlight) {
+    scene.remove(weaponSpotlight);
+    scene.remove(weaponSpotlight.target);
+    weaponSpotlight = null;
+  }
+  allowSpawning = true;           // permitir que los zombies empiecen a aparecer
+  lastZombieSpawnTime = Date.now(); // iniciar contador para spawn
+}
 
 ///LUCES/////////////
 
@@ -805,11 +812,19 @@ this.enemyMesh.lookAt(lookAt);
 function animate() {
   updateCharacterMovement();
   updatePointer();
+  updateWeaponPosition(); // mantener arma delante del puntero
+
+  // detectar pickup si existe arma en suelo y no equipada
+  if (!weaponEquipped && weaponOnGround) {
+    const d = character.position.distanceTo(weaponOnGround.position);
+    if (d < pickupDistance) {
+      equipWeapon();
+    }
+  }
 
   const currentTime = Date.now();
-  
-  // Spawnear nuevo zombie cada 10 segundos
-  if (currentTime - lastZombieSpawnTime > zombieSpawnInterval) {
+  // spawnear solo si allowSpawning == true
+  if (allowSpawning && (currentTime - lastZombieSpawnTime > zombieSpawnInterval)) {
     spawnZombie();
     lastZombieSpawnTime = currentTime;
   }
@@ -817,11 +832,9 @@ function animate() {
   // Actualizar posiciones y animaciones de zombies
   for (let i = 0; i < enemies.length; i++) {
     enemies[i].actualizarPosicion(character);
-    if (enemies[i].mixer) {
-      enemies[i].mixer.update(0.016); // ~60 FPS
-    }
+    if (enemies[i].mixer) enemies[i].mixer.update(0.016);
   }
 
   const delta = clock.getDelta();
-  renderer.render( scene, camera );
+  renderer.render(scene, camera);
 }
