@@ -694,7 +694,15 @@ class Enemigo {
     this.speed = speed;
     this.isChasing = false;
     this.atacando = false;
-    this.lives = 1;
+    this.lives = 2; // ahora tienen 2 vidas
+
+    // Guardar referencias a las mallas y su material original para restaurar después
+    this.meshParts = [];
+    this.enemyMesh.traverse((child) => {
+      if (child.isMesh) {
+        this.meshParts.push(child);
+      }
+    });
   }
 
   actualizarPosicion(personaje) {
@@ -719,7 +727,6 @@ class Enemigo {
       const targetRotation = Math.atan2(direction.x, direction.z);
       this.enemyMesh.rotation.y = targetRotation;
     }
-    
 
     // Si está cerca, atacar
     if (distance <= 2) this.atacarJugador();
@@ -729,9 +736,10 @@ class Enemigo {
     if (!this.atacando) {
       this.atacando = true;
       console.log("¡El zombie atacó al jugador!");
-         zombieAttackSound.currentTime = 0;
-    zombieAttackSound.play();
- // Quitar una vida al jugador cuando el zombie golpea (solo una vez por ataque)
+      zombieAttackSound.currentTime = 0;
+      zombieAttackSound.play();
+
+      // Quitar una vida al jugador cuando el zombie golpea (solo una vez por ataque)
       loseLife();
 
       if (navigator.vibrate) navigator.vibrate(200);
@@ -742,8 +750,39 @@ class Enemigo {
   recibirDisparo() {
     this.lives--;
     console.log("vida enemy", this.lives);
-    if (this.lives <= 1) {
-      scene.remove(this.enemyMesh);
+
+    // Si perdieron 1 vida (primera vez), ponerse rojos 0.3s y luego volver al material original
+    if (this.lives === 1) {
+      this.meshParts.forEach((m) => {
+        // almacenar material original si no está ya guardado
+        if (!m.userData._origMaterial) m.userData._origMaterial = m.material;
+        // clonar material y colorear rojo para evitar modificar material compartido
+        let redMat;
+        try {
+          redMat = m.userData._redMaterial || (m.material.clone ? m.material.clone() : new THREE.MeshStandardMaterial());
+        } catch (e) {
+          redMat = new THREE.MeshStandardMaterial();
+        }
+        if (redMat.color) redMat.color.set(0xff0000);
+        if (redMat.emissive) redMat.emissive.setHex(0x220000);
+        m.userData._redMaterial = redMat;
+        m.material = redMat;
+      });
+
+      setTimeout(() => {
+        this.meshParts.forEach((m) => {
+          if (m.userData._origMaterial) {
+            m.material = m.userData._origMaterial;
+            delete m.userData._origMaterial;
+          }
+          // opcional: conservar red material en cache para reuso
+        });
+      }, 300); // 300 ms
+    }
+
+    // Si ya no quedan vidas, eliminar
+    if (this.lives <= 0) {
+      if (this.enemyMesh.parent) this.enemyMesh.parent.remove(this.enemyMesh);
       const idx = enemies.indexOf(this);
       if (idx !== -1) enemies.splice(idx, 1);
     }
