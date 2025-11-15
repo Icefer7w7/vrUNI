@@ -806,9 +806,6 @@ scene.add( Ambientlight );
 
 const clock = new THREE.Clock();
 
-const lookAt = new THREE.Vector3().copy(playerPos);
-lookAt.y = enemyPos.y; // mantén la misma altura
-this.enemyMesh.lookAt(lookAt);
 
 
 function animate() {
@@ -844,3 +841,4 @@ function animate() {
   const delta = clock.getDelta();
   renderer.render( scene, camera );
 }
+
