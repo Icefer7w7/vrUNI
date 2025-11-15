@@ -7,7 +7,7 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 ////////////////////////ESCENA//////////////////
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-scene.fog = new THREE.FogExp2(0x2E2E2E, 0.07);  // Color y densidad
+//scene.fog = new THREE.FogExp2(0x2E2E2E, 0.07);  // Color y densidad
 
 
 // Crear AudioListener y agregar a la cámara
@@ -347,7 +347,7 @@ const escopeta = new THREE.MeshStandardMaterial({
   map: e1,
     normalMap: e2,
     roughnessMap: e3,
-     metalness: 1,          // asegurarte que ocupe el mapa
+    metalness: 0.9,        
   metalnessMap: e4,
     
 });
@@ -583,72 +583,70 @@ loaderFbx.load("modelos/CIELO.fbx", function(object1){
         scene.add(object1)
 })
 ///////////////// Cargar escopeta
+// Variables para el pickup de arma
 let weaponOnGround = null;
 let weaponSpotlight = null;
 let weaponEquipped = false;
-let allowSpawning = false;
 const pickupDistance = 1.2;
-const weaponPlaceDistance = 3;
 
+// ...existing code... (antes de cargar escopeta)
+
+///////////////// Cargar escopeta en el mundo
 
 loaderFbx.load("modelos/escopetaUV.fbx", function(object){
-  // usar el objeto cargado como la arma en el suelo
-  const ground = object;
-  ground.scale.set(0.005, 0.005, 0.005);
-
-  // calcular posición delante del personaje (respecto a la cámara)
-  const forward = new THREE.Vector3();
-  camera.getWorldDirection(forward);
-  forward.y = 0;
-  forward.normalize();
-
-  const spawnPos = new THREE.Vector3().copy(character.position).addScaledVector(forward, weaponPlaceDistance);
-  ground.position.set(spawnPos.x, 1, spawnPos.z);
-  ground.rotation.y = Math.PI * 0.2;
-
-  ground.traverse(function(child){
+  object.scale.set(0.01, 0.01, 0.01);
+  object.position.set(20, 1, 26); 
+  
+  object.traverse(function(child){
     if(child.isMesh){
       child.material = escopeta;
-      child.castShadow = true;
-      child.receiveShadow = true;
     }
   });
-
-  scene.add(ground);
-  weaponOnGround = ground;
-
-  // spotlight arriba de la escopeta para destacarla
-  weaponSpotlight = new THREE.SpotLight(0xffffff, 2, 15, Math.PI/8, 0.6);
-  weaponSpotlight.position.set(spawnPos.x+0.1, spawnPos.y + 6.0, spawnPos.z);
-  // crear target explícito para que apunte a la arma
+  
+  scene.add(object);
+  weaponOnGround = object; // guardar referencia
+  
+  // crear spotlight arriba de la escopeta
+  weaponSpotlight = new THREE.SpotLight(0xffffff, 10, 14, Math.PI/8, 0.6);
+  weaponSpotlight.position.set(object.position.x, object.position.y + 10, object.position.z);
+  
   const spotTarget = new THREE.Object3D();
-  spotTarget.position.copy(ground.position);
+  spotTarget.position.copy(object.position);
   scene.add(spotTarget);
   weaponSpotlight.target = spotTarget;
-
+  
   scene.add(weaponSpotlight);
 });
 
 let mixer1;
+loaderFbx.load("modelos/Zombie Walk.fbx", function(object2){
+    object2.scale.set(0.003, 0.003, 0.003);
+    object2.position.set(-10, 0.3, 10);
+    object2.rotation.y = 0;
 
-//EQUIPAR ESCOPETA
-function equipWeapon() {
-  if (weaponEquipped) return;
-  weaponEquipped = true;
+    object2.traverse(function(child){
+        if(child.isMesh){
+            child.material = zombie;
+        }
+    });
 
-  if (weaponOnGround) {
-    scene.remove(weaponOnGround);
-    weaponOnGround = null;
-  }
-  if (weaponSpotlight) {
-    if (weaponSpotlight.target) scene.remove(weaponSpotlight.target);
-    scene.remove(weaponSpotlight);
-    weaponSpotlight = null;
-  }
+    scene.add(object2);
+mixer1 = new THREE.AnimationMixer( object2 );
 
-  allowSpawning = true;
-  lastZombieSpawnTime = Date.now();
-}
+						const action = mixer1.clipAction( object2.animations[ 0 ] );
+						action.play();
+    // Instanciar Enemigo y guardarlo
+    const enemyInstance = new Enemigo(object2, 0.015);
+    enemyInstance.mixer = mixer1;
+    enemies.push(enemyInstance);
+
+    // Asociar referencia para raycast (cuando se dispare)
+    object2.traverse((child) => {
+      if (child.isMesh) {
+        child.userData.enemyInstance = enemyInstance;
+      }
+    });
+});
 
 ///ENEMIGOS///////////////////
 const enemies = [];
@@ -704,7 +702,6 @@ class Enemigo {
     this.isChasing = false;
     this.atacando = false;
     this.lives = 2; // ahora tienen 2 vidas
-    this.dead = false;
 
     // Guardar referencias a las mallas y su material original para restaurar después
     this.meshParts = [];
@@ -757,15 +754,16 @@ class Enemigo {
     }
   }
 
-    recibirDisparo() {
-    if (this.dead) return; // ya marcado
+  recibirDisparo() {
     this.lives--;
     console.log("vida enemy", this.lives);
 
     // Si perdieron 1 vida (primera vez), ponerse rojos 0.3s y luego volver al material original
     if (this.lives === 1) {
       this.meshParts.forEach((m) => {
+        // almacenar material original si no está ya guardado
         if (!m.userData._origMaterial) m.userData._origMaterial = m.material;
+        // clonar material y colorear rojo para evitar modificar material compartido
         let redMat;
         try {
           redMat = m.userData._redMaterial || (m.material.clone ? m.material.clone() : new THREE.MeshStandardMaterial());
@@ -784,14 +782,16 @@ class Enemigo {
             m.material = m.userData._origMaterial;
             delete m.userData._origMaterial;
           }
+          // opcional: conservar red material en cache para reuso
         });
-      }, 300);
+      }, 300); // 300 ms
     }
 
-    // Marcar para eliminar en el siguiente frame (evita mutar scene/arrays en medio de raycast/iteraciones)
+    // Si ya no quedan vidas, eliminar
     if (this.lives <= 0) {
-      this.dead = true;
-      enemiesToRemove.push(this);
+      if (this.enemyMesh.parent) this.enemyMesh.parent.remove(this.enemyMesh);
+      const idx = enemies.indexOf(this);
+      if (idx !== -1) enemies.splice(idx, 1);
     }
   }
 }
@@ -804,55 +804,48 @@ scene.add( Ambientlight );
 
 const clock = new THREE.Clock();
 
-const enemiesToRemove = [];
+const lookAt = new THREE.Vector3().copy(playerPos);
+lookAt.y = enemyPos.y; // mantén la misma altura
+this.enemyMesh.lookAt(lookAt);
+
 
 function animate() {
   updateCharacterMovement();
   updatePointer();
 
-  const currentTime = Date.now();
-
-  // rotar arma en el suelo para que sea visible y detectar pickup
-  if (weaponOnGround) {
-    weaponOnGround.rotation.y += 0.01;
+  // Hacer girar la escopeta y detectar pickup
+  if (weaponOnGround && !weaponEquipped) {
+    weaponOnGround.rotation.y += 0.01; // girar lentamente
+    
+    // detectar si el jugador pasó por encima
     const d = character.position.distanceTo(weaponOnGround.position);
-    if (!weaponEquipped && d < pickupDistance) {
-      equipWeapon();
+    if (d < pickupDistance) {
+      // quitar escopeta y spotlight
+      scene.remove(weaponOnGround);
+      if (weaponSpotlight && weaponSpotlight.target) {
+        scene.remove(weaponSpotlight.target);
+      }
+      scene.remove(weaponSpotlight);
+      weaponOnGround = null;
+      weaponSpotlight = null;
+      weaponEquipped = true;
     }
   }
 
-  // Spawnear nuevo zombie SOLO si ya se recogió el arma
-  if (allowSpawning && currentTime - lastZombieSpawnTime > zombieSpawnInterval) {
+  const currentTime = Date.now();
+  
+  // Spawnear nuevo zombie cada 10 segundos
+  if (currentTime - lastZombieSpawnTime > zombieSpawnInterval) {
     spawnZombie();
     lastZombieSpawnTime = currentTime;
   }
 
   // Actualizar posiciones y animaciones de zombies
-  for (let i = enemies.length - 1; i >= 0; i--) {
-    const e = enemies[i];
-    e.actualizarPosicion(character);
-    if (e.mixer) {
-      e.mixer.update(0.016); // ~60 FPS
+  for (let i = 0; i < enemies.length; i++) {
+    enemies[i].actualizarPosicion(character);
+    if (enemies[i].mixer) {
+      enemies[i].mixer.update(0.016); // ~60 FPS
     }
-  }
-
-  // Remover enemigos marcados (fuera de cualquier bucle de raycast/iteración)
-  if (enemiesToRemove.length > 0) {
-    enemiesToRemove.forEach((e) => {
-      try {
-        if (e.mixer) {
-          // opcional: detener y limpiar mixer
-          // no hay método dispose estándar, pero podemos quitar referencias
-          e.mixer.stopAllAction && e.mixer.stopAllAction();
-        }
-        if (e.enemyMesh && e.enemyMesh.parent) e.enemyMesh.parent.remove(e.enemyMesh);
-      } catch (err) {
-        console.warn('Error al remover enemigo:', err);
-      }
-      const idx = enemies.indexOf(e);
-      if (idx !== -1) enemies.splice(idx, 1);
-    });
-    enemiesToRemove.length = 0;
   }
 
   const delta = clock.getDelta();
