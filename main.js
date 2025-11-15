@@ -16,6 +16,7 @@ camera.add(audioListener);
 
 // Crear Audio
 const audio = new THREE.Audio(audioListener);
+let musicReady = false;
 
 // Cargar el archivo de música
 const audioLoader = new THREE.AudioLoader();
@@ -83,6 +84,67 @@ character.add(camera);
 character.position.set(20, 1, 30); 
 camera.position.set(10, 5.6, 30); 
 
+// --- HUD / vidas del jugador ---
+const maxLives = 3;
+let playerLives = maxLives;
+
+const hud = document.createElement('div');
+hud.id = 'hud';
+Object.assign(hud.style, {
+  position: 'absolute',
+  left: '10px',
+  top: '10px',
+  zIndex: '9999',
+  display: 'flex',
+  gap: '6px',
+  pointerEvents: 'none'
+});
+document.body.appendChild(hud);
+
+function renderHearts() {
+  hud.innerHTML = '';
+  for (let i = 0; i < playerLives; i++) {
+    const img = document.createElement('img');
+    img.src = 'text/corazon.png'; // asegúrate que esta ruta sea correcta
+    img.style.width = '40px';
+    img.style.height = '40px';
+    hud.appendChild(img);
+  }
+}
+renderHearts();
+
+function loseLife() {
+  if (playerLives <= 0) return;
+  playerLives--;
+  renderHearts();
+  if (playerLives <= 0) gameOver();
+}
+
+function gameOver() {
+  console.log('GAME OVER');
+  const overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.left = '0';
+  overlay.style.top = '0';
+  overlay.style.width = '100%';
+  overlay.style.height = '100%';
+  overlay.style.display = 'flex';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.background = 'rgba(0,0,0,0.75)';
+  overlay.style.color = 'white';
+  overlay.style.fontSize = '48px';
+  overlay.style.zIndex = '10000';
+  overlay.innerText = 'GAME OVER';
+  document.body.appendChild(overlay);
+
+  // Detener loop y/o bloquear entrada
+  renderer.setAnimationLoop(null);
+}
+
+
+// Luz del personaje
+
 const spotLight = new THREE.SpotLight(0xffffff, 1, 100, Math.PI / 6, 0.5, 2);
 spotLight.position.set(0, 0, 0);  // Relativa a la cámara
 spotLight.target.position.set(0, 0, -10);  // Apunta hacia adelante
@@ -95,14 +157,16 @@ window.addEventListener("gamepadconnected", (event) => {
 
 function updateCharacterMovement() {
   const gamepads = navigator.getGamepads();
-  
+
   // Resetear movimiento cada frame
   moveForward = false;
   moveBackward = false;
-  
+  let leftStickX = 0;
+
   if (gamepads[0]) {
     const gp = gamepads[0];
     const leftStickY = gp.axes[1];
+    leftStickX = gp.axes[0];
 
     moveForward = leftStickY < -0.1;
     moveBackward = leftStickY > 0.1;
@@ -112,15 +176,26 @@ function updateCharacterMovement() {
     }
   }
 
+  // Dirección hacia adelante (sin componente Y)
   const direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
-  direction.y = 0;  // No moverse verticalmente
+  direction.y = 0;
   direction.normalize();
 
+  // Vector derecho (para strafing)
+  const right = new THREE.Vector3().crossVectors(direction, new THREE.Vector3(0, 1, 0)).normalize();
+
+  // Movimiento
   if (moveForward) character.position.addScaledVector(direction, speed);
   if (moveBackward) character.position.addScaledVector(direction, -speed);
 
-  // Solo mantener la altura (Y)
+  // Strafing con stick X (muévete proporcionalmente; deadzone 0.1)
+  if (Math.abs(leftStickX) > 0.1) {
+    const strafeSpeed = speed; // ajustar si quieres lateral más lento/rápido
+    character.position.addScaledVector(right, leftStickX * strafeSpeed);
+  }
+
+  // Mantener altura (Y)
   character.position.y = 0.6;
 }
 
@@ -134,8 +209,26 @@ scene.add(enemy);
 
 
 function shootRay() {
-    disparoSound.currentTime = 0; // reinicia el sonido si se dispara rápido
-disparoSound.play();
+  const currentTime = Date.now();
+  
+  // Verificar cooldown de 1 segundo
+  if (currentTime - lastShotTime < shotCooldown) {
+    return; // No disparar aún
+  }
+  
+  lastShotTime = currentTime;
+
+  disparoSound.currentTime = 0;
+  disparoSound.play();
+
+  // Mostrar flash de disparo por 0.5 segundos
+  if (disparoMesh) {
+    disparoMesh.visible = true;
+    setTimeout(() => {
+      if (disparoMesh) disparoMesh.visible = false;
+    }, 500);
+  }
+
   // Origen del disparo
   const origin = new THREE.Vector3();
   camera.getWorldPosition(origin);
@@ -198,6 +291,9 @@ const aje = new THREE.MeshPhongMaterial( { map:aj} );
 const pu = new THREE.TextureLoader().load('text/puerta.jpg' ); 
 const pur = new THREE.MeshPhongMaterial( { map:pu} );
 
+const disp = new THREE.TextureLoader().load('text/disparro.png' ); 
+const disparo = new THREE.MeshPhongMaterial( { map:disp} );
+
 const texturaArbol = new THREE.TextureLoader().load('text/arbol.png');
 const arboles = new THREE.MeshPhongMaterial({
   map: texturaArbol,
@@ -243,10 +339,21 @@ const zombie = new THREE.MeshStandardMaterial({
     
 });
 
+const e1 = new THREE.TextureLoader().load('text/escopeta/esco_Base_color.png');
+const e2 = new THREE.TextureLoader().load('text/escopeta/esco_Normal_OpenGL.png');
+const e3 = new THREE.TextureLoader().load('text/escopeta/esco_Roughness.png');
+
+const escopeta = new THREE.MeshStandardMaterial({
+  map: e1,
+    normalMap: e2,
+    roughnessMap: e3
+    
+});
+
 
 //////////////////// PUNTERO (CENTRO DE PANTALLA VR) ////////////////////
 const pointerGeometry = new THREE.SphereGeometry(0.02, 16, 16);
-const pointerMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+const pointerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 const pointer = new THREE.Mesh(pointerGeometry, pointerMaterial);
 pointer.position.set(0, 0, -2);
 
@@ -268,6 +375,12 @@ function updatePointer() {
 
 
 //ESCENA////////////////////////////
+//ESCOPETA/////////////////////
+let escopetaMesh = null;
+let disparoMesh = null;
+let lastShotTime = 0;
+const shotCooldown = 1000; // 1 segundo en milisegundos
+
 
 
 /////FBX///////////////
@@ -469,6 +582,36 @@ loaderFbx.load("modelos/CIELO.fbx", function(object1){
     })
         scene.add(object1)
 })
+// Cargar escopeta
+loaderFbx.load("modelos/escopeta.fbx", function(object){
+  object.scale.set(0.1, 0.1, 0.1);
+  object.position.set(0.5, -0.3, -0.8); // Derecha del jugador
+  
+  object.traverse(function(child){
+    if(child.isMesh){
+      child.material = escopeta;
+    }
+  });
+  
+  camera.add(object); // Añadir a la cámara para que siga al jugador
+  escopetaMesh = object;
+});
+
+// Cargar disparo (flash)
+loaderFbx.load("modelos/disparo.fbx", function(object){
+  object.scale.set(0.1, 0.1, 0.1);
+  object.position.set(0.7, -0.2, -1); // Enfrente de la escopeta
+  object.visible = false; // Inicialmente invisible
+  
+  object.traverse(function(child){
+    if(child.isMesh){
+      child.material = disparo;
+    }
+  });
+  
+  camera.add(object); // Añadir a la cámara
+  disparoMesh = object;
+});
 let mixer1;
 loaderFbx.load("modelos/Zombie Walk.fbx", function(object2){
     object2.scale.set(0.004, 0.004, 0.004);
@@ -589,6 +732,9 @@ class Enemigo {
       console.log("¡El zombie atacó al jugador!");
          zombieAttackSound.currentTime = 0;
     zombieAttackSound.play();
+ // Quitar una vida al jugador cuando el zombie golpea (solo una vez por ataque)
+      loseLife();
+
       if (navigator.vibrate) navigator.vibrate(200);
       setTimeout(() => (this.atacando = false), 1500);
     }
@@ -604,8 +750,6 @@ class Enemigo {
     }
   }
 }
-
-
 
 
 ///LUCES/////////////
